@@ -114,7 +114,7 @@ class RedditApiClient(val config: RedditApiClientConfig)(implicit ec: ExecutionC
     )
   }
 
-  def getMatchThreadData: Future[List[RawMatchThreadData]] = {
+  def getMatchThreadData: Future[Seq[RawMatchThreadData]] = {
 
     def getJson: Future[io.circe.Json] = {
       val RequestUri = "/r/soccer/search"
@@ -138,27 +138,24 @@ class RedditApiClient(val config: RedditApiClientConfig)(implicit ec: ExecutionC
         ))
     }
 
-    def extractMatchInfo(json: io.circe.Json): List[RawMatchThreadData] = {
-      // FIXME: refactor, this is ugly as fuck and the only difference is the last field I pick...
-      val hcursor = json.hcursor
-      val data = hcursor.downField("data").downField("children").downArray
+    def extractMatchInfo(json: io.circe.Json): Seq[RawMatchThreadData] = {
+      def getFieldValues(cursors: Seq[ACursor], field: String): Seq[String] = {
+        cursors.map(_.downField(field).as[String]).flatMap(_.toSeq)
+      }
+
+      val data = json.hcursor.downField("data").downField("children").downArray
 
       val head = data.downField("data")
-      val tail = data.rights
+      val maybeTail = data.rights.map(_.map(_.hcursor.downField("data")))
 
-      val titleHead = head.downField("title").as[String]
-      val titlesTail = tail.map(_.map(_.hcursor.downField("data").downField("title").as[String]))
+      val threadData = maybeTail.map(head +: _).toSeq.flatten
 
-      val selftextHead = head.downField("selftext").as[String]
-      val selftextsTail = tail.map(_.map(_.hcursor.downField("data").downField("selftext").as[String]))
+      val ids = getFieldValues(threadData, "id")
+      val titles = getFieldValues(threadData, "title")
+      val selftexts = getFieldValues(threadData, "selftext")
 
-      val mergedTitles = titleHead +: titlesTail.getOrElse(Nil)
-      val mergedSelftexts = selftextHead +: selftextsTail.getOrElse(Nil)
-
-      val titles = mergedTitles.flatMap(_.toSeq)
-      val selftexts = mergedSelftexts.flatMap(_.toSeq)
-
-      titles.zip(selftexts).map(pair => RawMatchThreadData(pair._1, pair._2))
+      (ids, titles, selftexts).zipped.toSeq
+        .map(row => RawMatchThreadData(row._1, row._2, row._3))
     }
 
     getJson.map(extractMatchInfo)

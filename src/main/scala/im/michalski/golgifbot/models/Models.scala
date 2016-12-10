@@ -1,6 +1,6 @@
 package im.michalski.golgifbot.models
 
-case class RawMatchThreadData(title: String, selftext: String)
+case class RawMatchThreadData(id: String, title: String, selftext: String)
 
 case class Score(home: Int, away: Int)
 
