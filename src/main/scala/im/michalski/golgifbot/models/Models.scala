@@ -1,5 +1,13 @@
 package im.michalski.golgifbot.models
 
+
+// General
+case class Error(message: String)
+
+// Reddit API
+case class AccessToken(access_token: String, expires_in: Int, scope: String, token_type: String)
+
+// Match Data
 case class RawMatchThreadData(id: String, title: String, selftext: String)
 
 case class Score(home: Int, away: Int)

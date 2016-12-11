@@ -1,4 +1,4 @@
-package im.michalski.golgifbot
+package im.michalski.golgifbot.models
 
 import io.circe.Decoder
 import io.circe.generic.semiauto._

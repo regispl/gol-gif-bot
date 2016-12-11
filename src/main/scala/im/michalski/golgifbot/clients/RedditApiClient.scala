@@ -1,31 +1,29 @@
-package im.michalski.golgifbot
+package im.michalski.golgifbot.clients
 
-import akka.actor.{Actor, ActorLogging, ActorSystem}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import de.heikoseeberger.akkahttpcirce.CirceSupport
-import im.michalski.golgifbot.models.RawMatchThreadData
+import im.michalski.golgifbot.models.{AccessToken, Error, RawMatchThreadData}
 import io.circe.ACursor
 
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
-case class RedditApiClientConfig(
-                                  username: String,
-                                  password: String,
-                                  clientId: String,
-                                  clientSecret: String,
-                                  userAgent:String
-                                )
 
-class RedditApiClient(val config: RedditApiClientConfig)(implicit ec: ExecutionContext) extends CirceSupport {
-  import JsonOps._
+case class RedditApiClientConfig(username: String, password: String, clientId: String, clientSecret: String, userAgent:String)
+
+class RedditApiClient(val config: RedditApiClientConfig)
+                     (implicit ec: ExecutionContext, as: ActorSystem, ecc: ExecutionContextExecutor, am: ActorMaterializer)
+  extends CirceSupport {
+
+  import im.michalski.golgifbot.models.JsonOps._
 
   private val apiKeyHeaderName = "Authorize"
 
@@ -38,19 +36,13 @@ class RedditApiClient(val config: RedditApiClientConfig)(implicit ec: ExecutionC
 
   private val RequestHost = "oauth.reddit.com"
 
-  private implicit val system = ActorSystem()
-  private implicit val executor = system.dispatcher
-  private implicit val materializer = ActorMaterializer()
-
   private lazy val authConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps(AuthHost)
   private lazy val requestConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps(RequestHost)
 
   val token = authorize(config.clientId, config.clientSecret)
 
   def shutdown() = {
-    Http().shutdownAllConnectionPools().onComplete{ _ =>
-      system.terminate()
-    }
+    Http().shutdownAllConnectionPools()
   }
 
   private def blocking[T](f: Future[T], patience: FiniteDuration = 5 seconds) = {
