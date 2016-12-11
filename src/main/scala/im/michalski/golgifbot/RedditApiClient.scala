@@ -115,7 +115,6 @@ class RedditApiClient(val config: RedditApiClientConfig)(implicit ec: ExecutionC
   }
 
   def getMatchThreadData: Future[Seq[RawMatchThreadData]] = {
-
     def getJson: Future[io.circe.Json] = {
       val RequestUri = "/r/soccer/search"
       val QueryString = "?q=flair%3Apostmatch&sort=new&restrict_sr=on&t=week"

@@ -1,3 +1,4 @@
+import im.michalski.golgifbot.formatters.WykopBlogFormatter
 import im.michalski.golgifbot.processors._
 import im.michalski.golgifbot.{RedditApiClient, RedditApiClientConfig}
 
@@ -23,10 +24,13 @@ object GolGifBot extends App {
   val contentProcessor = new ContentProcessorImpl()
   val processor = new MatchThreadProcessorImpl(headlineProcessor, contentProcessor)
 
+  val formatter = new WykopBlogFormatter()
+
   val result = for {
     data <- client.getMatchThreadData
     processed = data.map(processor.process).filter(_.isDefined).map(_.get)
-  } yield processed
+    formatted = processed.map(formatter.format)
+  } yield formatted
 
   val output = Await.result(result, 5 seconds)
 

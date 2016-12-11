@@ -10,7 +10,7 @@ sealed trait MatchEvent
 object MatchEvent {
   trait Links { def links: Seq[Link] }
 
-  case class Goal(time: Option[Int], override val links: Seq[Link]) extends MatchEvent with Links
+  case class Goal(time: Option[String], override val links: Seq[Link]) extends MatchEvent with Links
   case class OtherWithLinks(override val links: Seq[Link]) extends MatchEvent with Links
   case class Unknown(entry: String) extends MatchEvent
 }

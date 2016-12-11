@@ -17,14 +17,17 @@ class ContentProcessorImpl extends ContentProcessor {
       line.contains("mp4")
   }
 
-  private def maybeExtractTime(line: String): Option[Int] = {
-    // e.g. 3', 21`, 103 min
-    // FIXME: handle optional "+1" etc.
-    val timeRegex = """(\d+)('|`|\s?min)""".r
+  def maybeExtractTime(line: String): Option[String] = {
+    // e.g. 3', 21`, 103 min, 45 + 1'
+    val timeRegex = """(\d\d?(\s?\+\s?\d)?('|`|\s?min))""".r
 
-    timeRegex
-      .findFirstMatchIn(line)
-      .map(m => m.group(1).toInt)
+    def parse(regex: Regex) = {
+      regex
+        .findFirstMatchIn(line)
+        .map(m => m.group(1))
+    }
+
+    parse(timeRegex)
   }
 
   private def extractLinks(line: String): Seq[Link] = {
