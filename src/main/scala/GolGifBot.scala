@@ -2,11 +2,10 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import im.michalski.golgifbot.formatters.WykopBlogFormatter
 import im.michalski.golgifbot.processors._
-import im.michalski.golgifbot.clients.{RedditApiClient, RedditApiClientConfig}
+import im.michalski.golgifbot.clients.{RedditApiClient, RedditApiClientConfig, WykopApiClient, WykopApiClientConfig}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 object GolGifBot extends App {
@@ -16,11 +15,10 @@ object GolGifBot extends App {
   val RedditClientId = args(2)
   val RedditClientSecret = args(3)
 
-  /*
-  val WykopApplicationKey = args(4)
-  val WykopSecret = args(5)
-  val WykopAccountKey = args(6)
-  */
+  val WykopLogin = args(4)
+  val WykopApplicationKey = args(5)
+  val WykopSecret = args(6)
+  val WykopAccountKey = args(7)
 
   val UserAgent = "GolGifBot/0.1 by RegisPL"
 
@@ -28,8 +26,8 @@ object GolGifBot extends App {
   private implicit val executor = system.dispatcher
   private implicit val materializer = ActorMaterializer()
 
-  val clientConfig = RedditApiClientConfig(RedditUsername, RedditPassword, RedditClientId, RedditClientSecret, UserAgent)
-  val client = new RedditApiClient(clientConfig)
+  val redditClientConfig = RedditApiClientConfig(RedditUsername, RedditPassword, RedditClientId, RedditClientSecret, UserAgent)
+  val redditClient = new RedditApiClient(redditClientConfig)
 
   val scoreExtractor = new ScoreExtractorImpl()
   val headlineProcessor = new HeadlineProcessorImpl(scoreExtractor)
@@ -39,7 +37,7 @@ object GolGifBot extends App {
   val formatter = new WykopBlogFormatter()
 
   val result = for {
-    data      <- client.getMatchThreadData
+    data      <- redditClient.getMatchThreadData
     processed  = data.map(processor.process).filter(_.isDefined).map(_.get)
     formatted  = processed.map(formatter.format)
   } yield formatted
@@ -48,5 +46,10 @@ object GolGifBot extends App {
 
   output.foreach(println)
 
-  client.shutdown().onComplete(_ => system.terminate())
+  val wykopClientConfig = WykopApiClientConfig(WykopLogin, WykopApplicationKey, WykopSecret, WykopAccountKey)
+  val wykopClient = new WykopApiClient(wykopClientConfig)
+
+  output.headOption.map(wykopClient.publish)
+
+  redditClient.shutdown().map(_ => wykopClient.shutdown()).onComplete(_ => system.terminate())
 }

@@ -4,93 +4,38 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.Flow
 import de.heikoseeberger.akkahttpcirce.CirceSupport
-import im.michalski.golgifbot.models.{AccessToken, Error, RawMatchThreadData}
+import im.michalski.golgifbot.models.{AccessToken, RawMatchThreadData}
 import io.circe.ACursor
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
 
 
 case class RedditApiClientConfig(username: String, password: String, clientId: String, clientSecret: String, userAgent:String)
 
 class RedditApiClient(val config: RedditApiClientConfig)
-                     (implicit ec: ExecutionContext, as: ActorSystem, ecc: ExecutionContextExecutor, am: ActorMaterializer)
-  extends CirceSupport {
+                     (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
+  extends ApiClient with CirceSupport {
 
   import im.michalski.golgifbot.models.JsonOps._
 
-  private val apiKeyHeaderName = "Authorize"
+  private lazy val authConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps("www.reddit.com")
+  private lazy val requestConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps("oauth.reddit.com")
 
-  private val acceptHeaderName = "Accept"
-  private val acceptHeaderValue = "application/json"
-
-  private val AuthHost = "www.reddit.com"
-  private val AuthUri = "/api/v1/access_token"
-  private val AuthQueryParams = s"?grant_type=password&username=${config.username}&password=${config.password}"
-
-  private val RequestHost = "oauth.reddit.com"
-
-  private lazy val authConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps(AuthHost)
-  private lazy val requestConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps(RequestHost)
-
-  val token = authorize(config.clientId, config.clientSecret)
-
-  def shutdown() = {
-    Http().shutdownAllConnectionPools()
-  }
-
-  private def blocking[T](f: Future[T], patience: FiniteDuration = 5 seconds) = {
-    Await.result(f, patience)
-  }
-
-  private def request(request: HttpRequest, connectionFlow: Flow[HttpRequest, HttpResponse, Any]): Future[HttpResponse] = {
-    Source.single(request).via(connectionFlow).runWith(Sink.head)
-  }
-
-  private def failure(err: Error) = Future.successful(Left(err))
-
-  private def unmarshall[T](entity: ResponseEntity)
-                           (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Error, T]] = {
-    Try(Unmarshal(entity).to[T]) match {
-      case Success(e) => e.map(Right(_))
-      case Failure(exception) => failure(Error(exception.toString))
-    }
-  }
-
-  private def parseSimple(entity: ResponseEntity): Future[Either[Error, io.circe.Json]] = {
-    import io.circe.parser._
-
-    val body = blocking(entity.toStrict(3 seconds).map(_.data.decodeString("UTF-8")))
-
-    parse(body).fold(
-      error => failure(Error(error.message)),
-      success => Future.successful(Right(success))
-    )
-  }
-
-  private def process[T](response: HttpResponse, decode: ResponseEntity => Future[Either[Error, T]])
-                        (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Error, T]] = {
-    response.status match {
-      case StatusCodes.OK => decode(response.entity)
-      case StatusCodes.BadRequest => failure(Error("Bad Request"))
-      case StatusCodes.Unauthorized => failure(Error("Unauthorized"))
-      case StatusCodes.Forbidden => failure(Error("Forbidden"))
-      case _ => failure(Error(s"Other problem: ${response.status}"))
-    }
-  }
+  val token: String = authorize(config.clientId, config.clientSecret)
 
   private def authorize(username: String, password: String) = {
+    val authUri = "/api/v1/access_token"
+    val authQueryParams = s"?grant_type=password&username=${config.username}&password=${config.password}"
+
     val authorizationHeader = headers.Authorization(BasicHttpCredentials(username, password))
 
     val tokenRequest = HttpRequest(
       method = HttpMethods.POST,
-      uri = Uri(AuthUri + AuthQueryParams),
+      uri = Uri(authUri + authQueryParams),
       headers = List(authorizationHeader)
     )
 
@@ -108,14 +53,15 @@ class RedditApiClient(val config: RedditApiClientConfig)
 
   def getMatchThreadData: Future[Seq[RawMatchThreadData]] = {
     def getJson: Future[io.circe.Json] = {
-      val RequestUri = "/r/soccer/search"
-      val QueryString = "?q=flair%3Apostmatch&sort=new&restrict_sr=on&t=week"
+      val requestUri = "/r/soccer/search"
+      val queryString = "?q=flair%3Apostmatch&sort=new&restrict_sr=on&t=day"
+
       val authHeader = RawHeader("Authorization", s"bearer $token")
-      val userAgentHeader = RawHeader("User-Agent", "GolGifBot/0.1 by RegisPL")
+      val userAgentHeader = RawHeader("User-Agent", config.userAgent)
 
       val dataRequest = HttpRequest(
         method = HttpMethods.GET,
-        uri = Uri(RequestUri + QueryString),
+        uri = Uri(requestUri + queryString),
         headers = List(authHeader)
       )
 
