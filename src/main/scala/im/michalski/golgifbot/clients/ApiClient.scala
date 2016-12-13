@@ -47,8 +47,6 @@ trait ApiClient {
 
     val body = entity.toStrict(3 seconds).map(_.data.decodeString("UTF-8"))
 
-    println(blocking(body))
-
     body.map(parse).map(_.fold(
       error => Left(Error(error.message)),
       success => Right(success)

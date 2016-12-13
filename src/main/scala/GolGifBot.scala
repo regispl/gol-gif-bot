@@ -20,7 +20,9 @@ object GolGifBot extends App {
   val WykopSecret = args(6)
   val WykopAccountKey = args(7)
 
-  val UserAgent = "GolGifBot/0.1 by RegisPL"
+  val LastPublishedId = args(8)
+
+  val UserAgent = "GolGifBot/0.1.0"
 
   private implicit val system = ActorSystem()
   private implicit val executor = system.dispatcher
@@ -38,7 +40,9 @@ object GolGifBot extends App {
 
   val result = for {
     data      <- redditClient.getMatchThreadData
-    processed  = data.map(processor.process).filter(_.isDefined).map(_.get)
+    _          = println(s"===> NEWEST ENTRY: ${data.headOption.map(_.id)}")
+    fresh      = data.takeWhile(_.id != LastPublishedId)
+    processed  = fresh.map(processor.process).filter(_.isDefined).map(_.get)
     formatted  = processed.map(formatter.format)
   } yield formatted
 
@@ -49,7 +53,7 @@ object GolGifBot extends App {
   val wykopClientConfig = WykopApiClientConfig(WykopLogin, WykopApplicationKey, WykopSecret, WykopAccountKey)
   val wykopClient = new WykopApiClient(wykopClientConfig)
 
-  output.headOption.map(wykopClient.publish)
+  output.map(wykopClient.publish)
 
   redditClient.shutdown().map(_ => wykopClient.shutdown()).onComplete(_ => system.terminate())
 }

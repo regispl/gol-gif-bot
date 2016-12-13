@@ -63,7 +63,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
     )
   }
 
-  def publish(text: String): Future[Unit] = {
+  def publish(text: String): Future[Int] = {
     val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
 
     val postParams = Map[String, String]("body" -> text)
@@ -75,23 +75,23 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    println(s"Token Request: $tokenRequest")
+    println(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
 
-    val response = request(tokenRequest, connectionFlow)
-      .flatMap(response => process[io.circe.Json](response, parseSimple))
-      .map(_.fold(
-        error => throw new RuntimeException(error.message),
-        success => success
-      )).map(_.hcursor.downField("id").as[String])
+//    val response = request(tokenRequest, connectionFlow)
+//      .flatMap(response => process[io.circe.Json](response, parseSimple))
+//      .map(_.fold(
+//        error => throw new RuntimeException(error.message),
+//        success => success
+//      )).map(_.hcursor.downField("id").as[String])
+//
+//    blocking(response).fold(
+//      err     => throw new RuntimeException(err.message),
+//      success => {
+//        println(success)
+//        success
+//      }
+//    )
 
-    blocking(response).fold(
-      err     => throw new RuntimeException(err.message),
-      success => {
-        println(success)
-        success
-      }
-    )
-
-    Future.successful(())
+    Future.successful(1)
   }
 }
