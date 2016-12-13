@@ -77,21 +77,16 @@ class WykopApiClient(val config: WykopApiClientConfig)
 
     println(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
 
-//    val response = request(tokenRequest, connectionFlow)
-//      .flatMap(response => process[io.circe.Json](response, parseSimple))
-//      .map(_.fold(
-//        error => throw new RuntimeException(error.message),
-//        success => success
-//      )).map(_.hcursor.downField("id").as[String])
-//
-//    blocking(response).fold(
-//      err     => throw new RuntimeException(err.message),
-//      success => {
-//        println(success)
-//        success
-//      }
-//    )
+    val response = request(tokenRequest, connectionFlow)
+      .flatMap(response => process[io.circe.Json](response, parseSimple))
+      .map(_.fold(
+        error => throw new RuntimeException(error.message),
+        success => success
+      )).map(_.hcursor.downField("id").as[String])
 
-    Future.successful(1)
+    response.map(_.fold(
+      err     => throw new RuntimeException(err.message),
+      success => success.toInt
+    ))
   }
 }
