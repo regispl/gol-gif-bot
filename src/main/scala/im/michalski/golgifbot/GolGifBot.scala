@@ -2,16 +2,18 @@ package im.michalski.golgifbot
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.LazyLogging
 import im.michalski.golgifbot.clients.{RedditApiClient, RedditApiClientConfig, WykopApiClient, WykopApiClientConfig}
 import im.michalski.golgifbot.formatters.WykopBlogFormatter
+import im.michalski.golgifbot.models.FormattedMatchData
 import im.michalski.golgifbot.processors._
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-object GolGifBot extends App {
+object GolGifBot extends App with LazyLogging {
   import Parser._
 
   private lazy implicit val system = ActorSystem()
@@ -22,7 +24,13 @@ object GolGifBot extends App {
 
   parser.parse(args, Config()) match {
     case Some(config) => run(config)
-    case None =>
+    case None => // Print CLI help
+  }
+
+  def debugTee(entry: FormattedMatchData): FormattedMatchData = {
+    logger.info(s"Formatted entry for '${entry.headline}' (ID: ${entry.id})")
+    logger.debug(s"\n${entry.text}")
+    entry
   }
 
   def run(config: Config) = {
@@ -33,7 +41,14 @@ object GolGifBot extends App {
       config.redditClientSecret,
       UserAgent)
 
+    val wykopClientConfig = WykopApiClientConfig(
+      config.wykopLogin,
+      config.wykopApplicationKey,
+      config.wykopSecret,
+      config.wykopAccountKey)
+
     val redditClient = new RedditApiClient(redditClientConfig)
+    val wykopClient = new WykopApiClient(wykopClientConfig)
 
     val scoreExtractor = new ScoreExtractorImpl()
     val headlineProcessor = new HeadlineProcessorImpl(scoreExtractor)
@@ -43,26 +58,19 @@ object GolGifBot extends App {
     val formatter = new WykopBlogFormatter()
 
     val result = for {
-      data <- redditClient.getMatchThreadData
-      _ = println(s"===> NEWEST ENTRY: ${data.headOption.map(_.id)}")
-      fresh = data.takeWhile(_.id != config.lastPublishedId)
-      processed = fresh.map(processor.process).filter(_.isDefined).map(_.get)
-      formatted = processed.map(formatter.format)
+      data       <- redditClient.getMatchThreadData
+      _           = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
+      fresh       = data.takeWhile(_.id != config.lastPublishedId)
+      processed   = fresh.map(processor.process).filter(_.isDefined).map(_.get)
+      formatted   = processed.map(formatter.format)
     } yield formatted
 
-    val output = Await.result(result, 5 seconds)
+    val output = Await.result(result, 5 seconds) // Will be Future in... Future :D
 
-    output.foreach(println)
-
-    val wykopClientConfig = WykopApiClientConfig(
-      config.wykopLogin,
-      config.wykopApplicationKey,
-      config.wykopSecret,
-      config.wykopAccountKey)
-
-    val wykopClient = new WykopApiClient(wykopClientConfig)
-
-    output.map(wykopClient.publish).map(fut => Await.result(fut, 5 seconds))
+    output.toList
+      .map(debugTee)
+      .map(wykopClient.publish)
+      .map(fut => Await.result(fut, 5 seconds))
 
     redditClient.shutdown().map(_ => wykopClient.shutdown()).onComplete(_ => system.terminate())
   }

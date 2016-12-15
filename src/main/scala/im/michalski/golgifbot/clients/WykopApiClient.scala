@@ -6,7 +6,9 @@ import akka.http.scaladsl.model.headers.{RawHeader, `Content-Type`}
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.CirceSupport
+import im.michalski.golgifbot.models.FormattedMatchData
 import im.michalski.golgifbot.utils.MD5
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -16,7 +18,7 @@ case class WykopApiClientConfig(login: String, applicationKey: String, secret: S
 
 class WykopApiClient(val config: WykopApiClientConfig)
                     (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
-  extends ApiClient with CirceSupport {
+  extends ApiClient with CirceSupport with LazyLogging {
 
   private val host: String = "a.wykop.pl"
 
@@ -48,7 +50,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    println(s"Microblog Add Request: $microblogAdd")
+    logger.debug(s"Microblog Add Request: $microblogAdd")
 
     val response = request(microblogAdd, connectionFlow)
       .flatMap(response => process[io.circe.Json](response, parseSimple))
@@ -63,10 +65,12 @@ class WykopApiClient(val config: WykopApiClientConfig)
     )
   }
 
-  def publish(text: String): Future[Int] = {
+  def publish(matchData: FormattedMatchData): Future[Int] = {
+    logger.debug(s"Trying to add entry for: ${matchData.headline}")
+
     val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
 
-    val postParams = Map[String, String]("body" -> text)
+    val postParams = Map[String, String]("body" -> matchData.text)
 
     val tokenRequest = HttpRequest(
       method = HttpMethods.POST,
@@ -75,7 +79,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    println(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
+    logger.debug(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
 
     val response = request(tokenRequest, connectionFlow)
       .flatMap(response => process[io.circe.Json](response, parseSimple))
@@ -86,7 +90,12 @@ class WykopApiClient(val config: WykopApiClientConfig)
 
     response.map(_.fold(
       err     => throw new RuntimeException(err.message),
-      success => success.toInt
+      success => {
+        val id = success.toInt
+        logger.info(s"Added Wykop entry $id for ${matchData.headline}")
+        id
+      }
     ))
+    //Future.successful(1)
   }
 }

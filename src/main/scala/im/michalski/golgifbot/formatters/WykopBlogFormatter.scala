@@ -1,6 +1,6 @@
 package im.michalski.golgifbot.formatters
 import im.michalski.golgifbot.models.MatchEvent.Goal
-import im.michalski.golgifbot.models.{Link, MatchEvent, MatchThreadData}
+import im.michalski.golgifbot.models.{FormattedMatchData, Link, MatchEvent, MatchThreadData}
 
 
 class WykopBlogFormatter extends Formatter {
@@ -26,11 +26,14 @@ class WykopBlogFormatter extends Formatter {
     case _ => ""
   }
 
-  override def format(matchData: MatchThreadData): String = {
-    s"""${matchData.headline}
+  override def format(matchData: MatchThreadData): FormattedMatchData = {
+    val text =
+      s"""${matchData.headline}
       |
       |${matchData.events.map(printEvent).mkString("")}
       |
       |$botInfo""".stripMargin
+
+    FormattedMatchData(matchData.id, matchData.headline, text)
   }
 }

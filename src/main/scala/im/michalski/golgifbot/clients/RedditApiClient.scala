@@ -6,6 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import im.michalski.golgifbot.models.{AccessToken, RawMatchThreadData}
 import io.circe.ACursor
@@ -18,7 +19,7 @@ case class RedditApiClientConfig(username: String, password: String, clientId: S
 
 class RedditApiClient(val config: RedditApiClientConfig)
                      (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
-  extends ApiClient with CirceSupport {
+  extends ApiClient with CirceSupport with LazyLogging {
 
   import im.michalski.golgifbot.models.JsonOps._
 
@@ -39,7 +40,7 @@ class RedditApiClient(val config: RedditApiClientConfig)
       headers = List(authorizationHeader)
     )
 
-    println(s"Token Request: $tokenRequest")
+    logger.debug(s"Token Request: $tokenRequest")
 
     val response = request(tokenRequest, authConnectionFlow)
       .flatMap(response => process[AccessToken](response, unmarshall[AccessToken]))
@@ -65,7 +66,7 @@ class RedditApiClient(val config: RedditApiClientConfig)
         headers = List(authHeader)
       )
 
-      println(s"Data Request: $dataRequest")
+      logger.debug(s"Data Request: $dataRequest")
 
       request(dataRequest, requestConnectionFlow)
         .flatMap(response => process[io.circe.Json](response, parseSimple))

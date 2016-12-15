@@ -23,4 +23,6 @@ object MatchEvent {
   case class Unknown(entry: String) extends MatchEvent
 }
 
-case class MatchThreadData(headline: String, score: Option[Score], events: Seq[MatchEvent])
+case class MatchThreadData(id: String, headline: String, score: Option[Score], events: Seq[MatchEvent])
+
+case class FormattedMatchData(id: String, headline: String, text: String)

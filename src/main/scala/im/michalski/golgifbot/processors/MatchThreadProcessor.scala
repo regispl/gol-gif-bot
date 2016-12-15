@@ -12,6 +12,6 @@ class MatchThreadProcessorImpl(headlineProcessor: HeadlineProcessor,
     val events = contentProcessor.process(data.selftext)
     val (headline, score) = headlineProcessor.process(data.title)
 
-    if(events.nonEmpty) Some(MatchThreadData(headline, score, events)) else None
+    if(events.nonEmpty) Some(MatchThreadData(data.id, headline, score, events)) else None
   }
 }

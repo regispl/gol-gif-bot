@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, ResponseEntity, Stat
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.typesafe.scalalogging.LazyLogging
 import im.michalski.golgifbot.models.Error
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -15,7 +16,7 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 
-trait ApiClient {
+trait ApiClient extends LazyLogging {
   implicit val as: ActorSystem
   implicit val ecc: ExecutionContextExecutor
   implicit val am: ActorMaterializer
@@ -47,8 +48,7 @@ trait ApiClient {
 
     val body = entity.toStrict(3 seconds).map(_.data.decodeString("UTF-8"))
 
-    // TODO: Add logging
-    // println(blocking(body))
+    logger.trace(s"Response body: ${blocking(body)}")
 
     body.map(parse).map(_.fold(
       error => Left(Error(error.message)),
