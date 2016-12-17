@@ -36,8 +36,9 @@ class GolGifBot(config: Config) extends LazyLogging {
 
   val formatter = new WykopBlogFormatter()
 
-  def notPublishedYet(data: List[RawMatchThreadData]) = {
-    data.takeWhile(_.id != config.lastPublishedId)
+  def notPublishedYet(data: List[RawMatchThreadData]) = config.lastPublishedId match {
+    case Some(id) => data.takeWhile(_.id != config.lastPublishedId)
+    case None => data
   }
 
   def processAndPickValid(data: List[RawMatchThreadData]) = {
@@ -82,10 +83,12 @@ class GolGifBot(config: Config) extends LazyLogging {
 
 object GolGifBot extends App with LazyLogging {
   import im.michalski.golgifbot.config.Parser._
+  import scopt.RenderingMode
+
   import scala.concurrent.ExecutionContext.Implicits.global
 
   parser.parse(args, Config()) match {
     case Some(config)   => new GolGifBot(config).run.foreach(println)
-    case None           => // Print CLI help
+    case None           => parser.showUsageAsError()
   }
 }
