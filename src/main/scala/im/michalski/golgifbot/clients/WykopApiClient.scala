@@ -69,21 +69,17 @@ class WykopApiClient(val config: WykopApiClientConfig)
       }
     }
 
-    val response = for {
+    for {
       json      <- responseJson
       userkey   <- parseJson(json)
     } yield userkey
-
-    response
   }
 
-  def publish(matchData: FormattedMatchData) = {
-    logger.info(s"Trying to add entry for: ${matchData.headline}")
-
+  def publish(body: String) = {
     def call(token: String) = EitherT[Future, Problem, Json] {
       val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
 
-      val postParams = Map[String, String]("body" -> matchData.text)
+      val postParams = Map[String, String]("body" -> body)
 
       val tokenRequest = HttpRequest(
         method = HttpMethods.POST,

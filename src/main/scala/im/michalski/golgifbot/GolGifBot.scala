@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import im.michalski.golgifbot.clients.{RedditApiClient, RedditApiClientConfig, WykopApiClient, WykopApiClientConfig}
 import im.michalski.golgifbot.config.Config
 import im.michalski.golgifbot.formatters.WykopBlogFormatter
-import im.michalski.golgifbot.models.{FormattedMatchData, Problem}
+import im.michalski.golgifbot.models.{FormattedMatchData, Problem, RawMatchThreadData}
 import im.michalski.golgifbot.processors._
 
 import scala.concurrent.Future
@@ -36,15 +36,33 @@ class GolGifBot(config: Config) extends LazyLogging {
 
   val formatter = new WykopBlogFormatter()
 
+  def notPublishedYet(data: List[RawMatchThreadData]) = {
+    data.takeWhile(_.id != config.lastPublishedId)
+  }
+
+  def processAndPickValid(data: List[RawMatchThreadData]) = {
+    data.map(processor.process).filter(_.isDefined).map(_.get)
+  }
+
+  def publish(data: List[FormattedMatchData]) = EitherT[Future, Problem, List[Int]] {
+    Future.sequence(data.map { fmd =>
+      if (!config.dryRun) {
+        wykopClient.publish(fmd.text)
+      } else {
+        EitherT[Future, Problem, Int](Future.successful(Right(-1)))
+      }
+    }.map(_.value)).map(_.sequenceU)
+  }
+
   def run: Future[Either[Problem, List[Int]]] = {
     val result = for {
-      data       <- redditClient.getMatchThreadData
-      _           = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
-      fresh       = data.takeWhile(_.id != config.lastPublishedId)
-      processed   = fresh.map(processor.process).filter(_.isDefined).map(_.get)
-      formatted   = processed.map(formatter.format)
-      _           = formatted.foreach(debugTee)
-      response   <- EitherT(Future.sequence(formatted.map(wykopClient.publish).map(_.value)).map(_.sequenceU))
+      data          <- redditClient.getMatchThreadData
+      _              = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
+      notPublished   = notPublishedYet(data)
+      processed      = processAndPickValid(notPublished)
+      formatted      = processed.map(formatter.format)
+      _              = formatted.foreach(debugTee)
+      response      <- publish(formatted)
     } yield response
 
     val fut = result.value.recoverWith {

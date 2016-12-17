@@ -30,6 +30,14 @@ object Parser {
       c.copy(wykopAccountKey = x))
 
     opt[String]("last-published-id").required().action((x, c) =>
-      c.copy(lastPublishedId = x))
+      c.copy(lastPublishedId = x)).text("Only entries newer than this Reddit ID will be processed")
+
+    opt[Unit]("verbose").action( (_, c) =>
+      c.copy(verbose = true) ).text("Print debug and trace logs (TODO)")
+
+    opt[Unit]("dry-run").action( (_, c) =>
+      c.copy(dryRun = true) ).text("Run without publishing to Wykop.pl (TODO)")
+
+    help("help").text("Prints this usage text")
   }
 }
