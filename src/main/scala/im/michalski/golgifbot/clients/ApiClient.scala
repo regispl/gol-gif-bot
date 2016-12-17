@@ -30,7 +30,7 @@ trait ApiClient extends LazyLogging {
   }
 
   private[clients] def request(request: HttpRequest, connectionFlow: Flow[HttpRequest, HttpResponse, Any]): Future[HttpResponse] = {
-    val entityShort = s"'${request.entity.toString.substring(0, request.entity.toString.length.min(30))}...'"
+    val entityShort = s"'${request.entity.toString.substring(0, request.entity.toString.length.min(70))}...'"
     logger.debug(s"Calling ${request.method} ${request.uri} with entity $entityShort and headers ${request.headers}")
     logger.trace(request.entity.toString)
     Source.single(request).via(connectionFlow).runWith(Sink.head)

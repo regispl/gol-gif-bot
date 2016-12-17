@@ -37,7 +37,7 @@ class GolGifBot(config: Config) extends LazyLogging {
   val formatter = new WykopBlogFormatter()
 
   def notPublishedYet(data: List[RawMatchThreadData]) = config.lastPublishedId match {
-    case Some(id) => data.takeWhile(_.id != config.lastPublishedId)
+    case Some(id) => data.takeWhile(_.id != id)
     case None => data
   }
 

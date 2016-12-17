@@ -2,8 +2,8 @@ package im.michalski.golgifbot.clients
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.{RawHeader, `Content-Type`}
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import cats.data.EitherT
@@ -11,7 +11,7 @@ import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import im.michalski.golgifbot.config.Config
-import im.michalski.golgifbot.models.{FormattedMatchData, Problem}
+import im.michalski.golgifbot.models.Problem
 import im.michalski.golgifbot.utils.MD5
 import io.circe.Json
 
@@ -52,8 +52,6 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    //logger.debug(s"Microblog Add Request: $microblogAdd")
-
     val responseJson = EitherT[Future, Problem, Json] {
       request(microblogAdd, connectionFlow)
         .flatMap(response => process[Json](response, parseSimple))
@@ -87,8 +85,6 @@ class WykopApiClient(val config: WykopApiClientConfig)
         headers = List(apiSignHeader(microblogAddUri, postParams)),
         entity = FormData(postParams).toEntity
       )
-
-      logger.debug(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
 
       request(tokenRequest, connectionFlow)
         .flatMap(response => process[Json](response, parseSimple))

@@ -1,4 +1,5 @@
 package im.michalski.golgifbot.formatters
+
 import im.michalski.golgifbot.models.MatchEvent.{Goal, OtherWithLinks, Unknown}
 import im.michalski.golgifbot.models.{FormattedMatchData, Link, MatchEvent, MatchThreadData}
 
