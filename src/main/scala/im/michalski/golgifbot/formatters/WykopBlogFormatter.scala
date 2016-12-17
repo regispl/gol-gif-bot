@@ -1,5 +1,5 @@
 package im.michalski.golgifbot.formatters
-import im.michalski.golgifbot.models.MatchEvent.Goal
+import im.michalski.golgifbot.models.MatchEvent.{Goal, OtherWithLinks, Unknown}
 import im.michalski.golgifbot.models.{FormattedMatchData, Link, MatchEvent, MatchThreadData}
 
 
@@ -23,7 +23,8 @@ class WykopBlogFormatter extends Formatter {
   private def printEvent(event: MatchEvent) = event match {
     // FIXME: distinguish between goals and other events with links
     case event: Goal => s"${event.links.map(link => printLine(event.time, link)).mkString(" | ")}\n"
-    case _ => ""
+    case event: OtherWithLinks => s"${event.links.map(link => printLine(None, link)).mkString(" | ")} [Nie jestem pewien, czy to bramka, ale jest link, więc wrzucam - dop. GolGifBot]\n"
+    case event: Unknown => s"${event.entry} [Wydaje mi się, że tu może coś być, ale nie potrafiłem dopasować tego tekstu do żadnego ze znanych mi formatów - dop. GolGifBot]\n"
   }
 
   override def format(matchData: MatchThreadData): FormattedMatchData = {

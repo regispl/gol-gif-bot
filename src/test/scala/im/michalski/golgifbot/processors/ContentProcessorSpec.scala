@@ -29,7 +29,8 @@ object ContentProcessorSpec {
     "0-1 Suarez https://streamable.com/h4v7\n\n0-2 Messi https://streamable.com/oool\n\n0-3 Messi https://streamable.com/58i1",
     "#**FT: Partick Thistle [](#sprite1-p327) [1-4](#bar-3-white) [](#sprite1-p18) Celtic**\n\n--------\n\n**Kick-off time:**  7:45pm\n\n**Venue:** Firhill Stadium, Glasgow\n\n" +
       "**Referee:** C. Thomson ^^^^^^^*wanker*\n\n--------\n\n[](#icon-notes-big) **LINE-UPS**\n\n**[](#sprite1-p327) Partick Thistle**\n\nT. Černý, \n\nZ. Gordon [](#icon-yellow), A. Barton, C. Booth, L. Lindsay [](#icon-ball), \n\nD. Amoo [](#icon-down), C. Erskine [](#icon-down),\n\nS. Welsh, C. Elliot, A. Osman, \n\nK. Doolan [](#icon-down).\n\n**Subs:** T. Stuckmann, D. Devine, R. Edwards [](#icon-up), D. McDaid, D. Wilson, S. Lawless [](#icon-up), A. Azeez [](#icon-up)[](#icon-yellow).\n\n^____________________________\n\n**[](#sprite1-p18) Celtic**\n\nC. Gordon,\n\nC. Gamboa, M. Lustig, E. Sviatchenko, E. Izaguirre,\n\nS. Brown, S. Armstrong [](#icon-ball)[](#icon-ball), \n\nP. Roberts [](#icon-down), T. Rogić [](#icon-down), G. Mackay-Steven [](#icon-down), \n\nL. Griffiths [](#icon-ball).\n\n**Subs:** D. de Vries, D. Boyata, K. Touré, C. McGregor [](#icon-up)[](#icon-ball), N. Bitton, R. Christie [](#icon-up), M. Dembélé [](#icon-up).\n\n------------\n\n" +
-      "[](#icon-net-big) **MATCH HIGHLIGHTS:**\n\n19’ [John Kennedy reacts to Griffiths’ free kick](https://streamable.com/dv9q)\n\n23’ [Griffiths chance](https://streamable.com/glnn)\n\n**39’ [](#icon-ball) [0-1 Armstrong](https://streamable.com/jleo) | [AA (ft. Bertie Auld)](https://streamable.com/825o)**\n\n^____________________________\n\n**49’ [](#icon-ball) [0-2 Armstrong](https://streamable.com/j0fo) | [AA](https://streamable.com/m980)**\n\n**50’ [](#icon-ball) [0-3 Griffiths](https://streamable.com/1l3u) | [AA](https://streamable.com/u9ne)**\n\n**61’ [](#icon-ball) [1-3 Lindsay](https://streamable.com/i8p1)**\n\n64’ [](#icon-flag) [Thistle disallowed goal](https://streamable.com/jmb5)\n\n67’ [Griffiths chance](https://streamable.com/yvmp)\n\n80’ [](#icon-yellow) [Azeez booked for diving](https://streamable.com/btrs)\n\n**82’ [](#icon-ball) [1-4 McGregor](https://streamable.com/y3pt) | [AA](https://streamable.com/g4gr)**\n\n^____________________________\n\n[Griffiths/Armstrong Post Match Interview](https://streamable.com/h4uz)\n\n[Brendan Rodgers Post Match Interview](https://streamable.com/41eb)\n\n----\n\n[](#icon-notes)  [BBC Report](http://www.bbc.co.uk/sport/football/38178476)\n\n----\n\n[](#icon-alien)  /r/PartickThistleFC/  /r/ScottishFootball  /r/CelticFC"
+      "[](#icon-net-big) **MATCH HIGHLIGHTS:**\n\n19’ [John Kennedy reacts to Griffiths’ free kick](https://streamable.com/dv9q)\n\n23’ [Griffiths chance](https://streamable.com/glnn)\n\n**39’ [](#icon-ball) [0-1 Armstrong](https://streamable.com/jleo) | [AA (ft. Bertie Auld)](https://streamable.com/825o)**\n\n^____________________________\n\n**49’ [](#icon-ball) [0-2 Armstrong](https://streamable.com/j0fo) | [AA](https://streamable.com/m980)**\n\n**50’ [](#icon-ball) [0-3 Griffiths](https://streamable.com/1l3u) | [AA](https://streamable.com/u9ne)**\n\n**61’ [](#icon-ball) [1-3 Lindsay](https://streamable.com/i8p1)**\n\n64’ [](#icon-flag) [Thistle disallowed goal](https://streamable.com/jmb5)\n\n67’ [Griffiths chance](https://streamable.com/yvmp)\n\n80’ [](#icon-yellow) [Azeez booked for diving](https://streamable.com/btrs)\n\n**82’ [](#icon-ball) [1-4 McGregor](https://streamable.com/y3pt) | [AA](https://streamable.com/g4gr)**\n\n^____________________________\n\n[Griffiths/Armstrong Post Match Interview](https://streamable.com/h4uz)\n\n[Brendan Rodgers Post Match Interview](https://streamable.com/41eb)\n\n----\n\n[](#icon-notes)  [BBC Report](http://www.bbc.co.uk/sport/football/38178476)\n\n----\n\n[](#icon-alien)  /r/PartickThistleFC/  /r/ScottishFootball  /r/CelticFC",
+    "**43'** **GOAL** [https://my.mixtape.moe/uuqroa.mp4] for [](#sprite1-p4) **Chelsea** by **DIEGO COSTA**! [](#icon-ball-big)"
   )
 
   val expected = Seq(
@@ -51,28 +52,31 @@ object ContentProcessorSpec {
       Goal(Some("86'"), List(Link("86' Costa", "https://streamable.com/81fs")))
     ),
     List(
-      Goal(None,List(Link("Lukaku 1-0", "https://streamable.com/mftk"))),
-      Goal(None,List(Link("Okaka 1-1", "https://streamable.com/i24g"))),
-      Goal(None,List(Link("Prödl 2-1", "https://streamable.com/zbh6"))),
-      Goal(None,List(Link("Okaka 3-1", "https://streamable.com/t2hv"))),
-      Goal(None,List(Link("Lukaku 2-3", "https://streamable.com/cxpj")))),
+      Goal(None, List(Link("Lukaku 1-0", "https://streamable.com/mftk"))),
+      Goal(None, List(Link("Okaka 1-1", "https://streamable.com/i24g"))),
+      Goal(None, List(Link("Prödl 2-1", "https://streamable.com/zbh6"))),
+      Goal(None, List(Link("Okaka 3-1", "https://streamable.com/t2hv"))),
+      Goal(None, List(Link("Lukaku 2-3", "https://streamable.com/cxpj")))),
     List(
-      Goal(None,List(Link("0-1 Suarez ", "https://streamable.com/h4v7"))),
-      Goal(None,List(Link("0-2 Messi ", "https://streamable.com/oool"))),
-      Goal(None,List(Link("0-3 Messi ", "https://streamable.com/58i1")))),
+      Goal(None, List(Link("0-1 Suarez ", "https://streamable.com/h4v7"))),
+      Goal(None, List(Link("0-2 Messi ", "https://streamable.com/oool"))),
+      Goal(None, List(Link("0-3 Messi ", "https://streamable.com/58i1")))),
     List(
-      Goal(None,List(Link("John Kennedy reacts to Griffiths’ free kick", "https://streamable.com/dv9q"))),
-      Goal(None,List(Link("Griffiths chance", "https://streamable.com/glnn"))),
-      Goal(None,List(Link("0-1 Armstrong", "https://streamable.com/jleo"), Link("AA (ft. Bertie Auld)", "https://streamable.com/825o"))),
-      Goal(None,List(Link("0-2 Armstrong", "https://streamable.com/j0fo"), Link("AA", "https://streamable.com/m980"))),
-      Goal(None,List(Link("0-3 Griffiths", "https://streamable.com/1l3u"), Link("AA", "https://streamable.com/u9ne"))),
-      Goal(None,List(Link("1-3 Lindsay", "https://streamable.com/i8p1"))),
-      Goal(None,List(Link("Thistle disallowed goal", "https://streamable.com/jmb5"))),
-      Goal(None,List(Link("Griffiths chance", "https://streamable.com/yvmp"))),
-      Goal(None,List(Link("Azeez booked for diving", "https://streamable.com/btrs"))),
-      Goal(None,List(Link("1-4 McGregor", "https://streamable.com/y3pt"), Link("AA", "https://streamable.com/g4gr"))),
-      Goal(None,List(Link("Griffiths/Armstrong Post Match Interview", "https://streamable.com/h4uz"))),
-      Goal(None,List(Link("Brendan Rodgers Post Match Interview", "https://streamable.com/41eb")))
+      Goal(None, List(Link("John Kennedy reacts to Griffiths’ free kick", "https://streamable.com/dv9q"))),
+      Goal(None, List(Link("Griffiths chance", "https://streamable.com/glnn"))),
+      Goal(None, List(Link("0-1 Armstrong", "https://streamable.com/jleo"), Link("AA (ft. Bertie Auld)", "https://streamable.com/825o"))),
+      Goal(None, List(Link("0-2 Armstrong", "https://streamable.com/j0fo"), Link("AA", "https://streamable.com/m980"))),
+      Goal(None, List(Link("0-3 Griffiths", "https://streamable.com/1l3u"), Link("AA", "https://streamable.com/u9ne"))),
+      Goal(None, List(Link("1-3 Lindsay", "https://streamable.com/i8p1"))),
+      Goal(None, List(Link("Thistle disallowed goal", "https://streamable.com/jmb5"))),
+      Goal(None, List(Link("Griffiths chance", "https://streamable.com/yvmp"))),
+      Goal(None, List(Link("Azeez booked for diving", "https://streamable.com/btrs"))),
+      Goal(None, List(Link("1-4 McGregor", "https://streamable.com/y3pt"), Link("AA", "https://streamable.com/g4gr"))),
+      Goal(None, List(Link("Griffiths/Armstrong Post Match Interview", "https://streamable.com/h4uz"))),
+      Goal(None, List(Link("Brendan Rodgers Post Match Interview", "https://streamable.com/41eb")))
+    ),
+    List(
+      Goal(Some("43'"), List(Link("", "https://my.mixtape.moe/uuqroa.mp4")))
     )
   )
 }

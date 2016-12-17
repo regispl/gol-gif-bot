@@ -38,13 +38,22 @@ class ContentProcessorImpl extends ContentProcessor {
     def parse(regex: Regex) = {
       regex
         .findAllMatchIn(line)
-        .map(m => Link(m.group(1), m.group(2)))
+        .map(m => Link(Option(m.group(1)).getOrElse(""), m.group(2)))
         .toList
     }
 
-    val links = parse(linkRegex)
+    def extract() = {
+      val rawLinkRegex = """(http[^\]\)]+)""".r
+      rawLinkRegex.findFirstMatchIn(line).map(m => m.group(0)).map(url => Link("", url)).toSeq
+    }
 
-    if (links.nonEmpty) links else parse(fallbackLinkRegex)
+    val links = List(
+      parse(linkRegex),
+      parse(fallbackLinkRegex),
+      extract()
+    )
+
+    links.dropWhile(_.isEmpty).headOption.getOrElse(Seq.empty[Link])
   }
 
   private def isGoal(line: String, links: Seq[Link]): Boolean = {
@@ -56,15 +65,20 @@ class ContentProcessorImpl extends ContentProcessor {
       .split("\n+")
       .filter(isMatchEvent)
       .map { line =>
-        val maybeTime = maybeExtractTime(line)
-        val links = extractLinks(line)
+        val processedLine = line
+          .replaceAll("""\[\]\(\#[\w\d\-]+\)""", " ")       // Remove icons
+          .replaceAll("""^\s+|\s+$""", "")                  // Strip whitespaces
+          .replaceAll("""\s+""", " ")                       // Replace multi-whitespaces with single ones
 
-        if(isGoal(line, links)) {
+        val maybeTime = maybeExtractTime(processedLine)
+        val links = extractLinks(processedLine)
+
+        if(isGoal(processedLine, links)) {
           Goal(maybeTime, links)
         } else if (links.nonEmpty) {
           OtherWithLinks(links)
         } else {
-          Unknown(line)
+          Unknown(processedLine)
         }
       }.toList
   }

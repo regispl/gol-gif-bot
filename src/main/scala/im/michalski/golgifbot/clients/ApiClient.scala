@@ -7,7 +7,7 @@ import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
-import im.michalski.golgifbot.models.Error
+import im.michalski.golgifbot.models.Problem
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.FiniteDuration
@@ -30,40 +30,45 @@ trait ApiClient extends LazyLogging {
   }
 
   private[clients] def request(request: HttpRequest, connectionFlow: Flow[HttpRequest, HttpResponse, Any]): Future[HttpResponse] = {
+    val entityShort = s"'${request.entity.toString.substring(0, request.entity.toString.length.min(30))}...'"
+    logger.debug(s"Calling ${request.method} ${request.uri} with entity $entityShort and headers ${request.headers}")
+    logger.trace(request.entity.toString)
     Source.single(request).via(connectionFlow).runWith(Sink.head)
   }
 
-  private[clients] def failure(err: Error) = Future.successful(Left(err))
+  private[clients] def failure(err: Problem) = Future.successful(Left(err))
 
-  private[clients] def unmarshall[T](entity: ResponseEntity)
-                                    (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Error, T]] = {
+  private [clients] def collectResponseEntity(entity: ResponseEntity, timeout: FiniteDuration = 5 seconds): Future[String] = {
+    entity.toStrict(timeout).map(_.data.decodeString("UTF-8"))
+  }
+
+  private[clients] def unmarshal[T](entity: ResponseEntity)
+                                   (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Problem, T]] = {
     Try(Unmarshal(entity).to[T]) match {
       case Success(e) => e.map(Right(_))
-      case Failure(exception) => failure(Error(exception.toString))
+      case Failure(exception) => collectResponseEntity(entity).map { data =>
+        Left(Problem(s"Failed to unmarshal entity $data with error: ${exception.toString}"))
+      }
     }
   }
 
-  private[clients] def parseSimple(entity: ResponseEntity): Future[Either[Error, io.circe.Json]] = {
+  private[clients] def parseSimple(entity: ResponseEntity): Future[Either[Problem, io.circe.Json]] = {
     import io.circe.parser._
 
-    val body = entity.toStrict(3 seconds).map(_.data.decodeString("UTF-8"))
-
-    logger.trace(s"Response body: ${blocking(body)}")
-
-    body.map(parse).map(_.fold(
-      error => Left(Error(error.message)),
-      success => Right(success)
+    collectResponseEntity(entity).map(parse)
+      .map(_.fold(
+        error => Left(Problem(s"Failed to parse: ${error.message}")),
+        success => Right(success)
     ))
   }
 
-  private[clients] def process[T](response: HttpResponse, decode: ResponseEntity => Future[Either[Error, T]])
-                                 (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Error, T]] = {
+  private[clients] def process[T](response: HttpResponse, decode: ResponseEntity => Future[Either[Problem, T]])
+                                 (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Problem, T]] = {
     response.status match {
-      case StatusCodes.OK           => decode(response.entity)
-      case StatusCodes.BadRequest   => failure(Error("Bad Request"))
-      case StatusCodes.Unauthorized => failure(Error("Unauthorized"))
-      case StatusCodes.Forbidden    => failure(Error("Forbidden"))
-      case _                        => failure(Error(s"Other problem: ${response.status}"))
+      case StatusCodes.OK   => decode(response.entity)
+      case _                => collectResponseEntity(response.entity).map { data =>
+        Left(Problem(s"Request failed with HTTP status code ${response.status.toString}: $data"))
+      }
     }
   }
 }

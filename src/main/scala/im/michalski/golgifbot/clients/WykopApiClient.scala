@@ -6,15 +6,17 @@ import akka.http.scaladsl.model.headers.{RawHeader, `Content-Type`}
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import cats.data.EitherT
+import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.CirceSupport
-import im.michalski.golgifbot.models.FormattedMatchData
+import im.michalski.golgifbot.config.Config
+import im.michalski.golgifbot.models.{FormattedMatchData, Problem}
 import im.michalski.golgifbot.utils.MD5
+import io.circe.Json
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-
-case class WykopApiClientConfig(login: String, applicationKey: String, secret: String, accountKey: String)
 
 class WykopApiClient(val config: WykopApiClientConfig)
                     (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
@@ -24,7 +26,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
 
   private lazy val connectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnection(host)
 
-  val token: String = authorize()
+  lazy val authToken: EitherT[Future, Problem, String] = authorize
 
   def apiSignHeader(uri: String, postParams: Map[String, String]) = {
     def postParamsToChecksum(params: Map[String, String]) = {
@@ -35,12 +37,12 @@ class WykopApiClient(val config: WykopApiClientConfig)
     RawHeader("apisign", MD5.hash(checksum))
   }
 
-  private def authorize() = {
+  private def authorize: EitherT[Future, Problem, String] = {
     val authUri = s"/user/login/appkey/${config.applicationKey}/"
 
     val postParams = Map[String, String](
-      "login" -> config.login,
-      "accountkey" -> config.accountKey
+      "login"       -> config.login,
+      "accountkey"  -> config.accountKey
     )
 
     val microblogAdd = HttpRequest(
@@ -50,52 +52,84 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    logger.debug(s"Microblog Add Request: $microblogAdd")
+    //logger.debug(s"Microblog Add Request: $microblogAdd")
 
-    val response = request(microblogAdd, connectionFlow)
-      .flatMap(response => process[io.circe.Json](response, parseSimple))
-      .map(_.fold(
-        error => throw new RuntimeException(error.message),
-        success => success
-      )).map(_.hcursor.downField("userkey").as[String])
+    val responseJson = EitherT[Future, Problem, Json] {
+      request(microblogAdd, connectionFlow)
+        .flatMap(response => process[Json](response, parseSimple))
+    }
 
-    blocking(response).fold(
-      err     => throw new RuntimeException(err.message),
-      success => success
-    )
+    def parseJson(json: Json) = EitherT[Future, Problem, String] {
+      Future.successful {
+        json.hcursor.downField("userkey").as[String]
+          .fold(
+            error => Left(Problem(s"Failed to parse 'userkey': $error")),
+            success => Right(success)
+          )
+      }
+    }
+
+    val response = for {
+      json      <- responseJson
+      userkey   <- parseJson(json)
+    } yield userkey
+
+    response
   }
 
-  def publish(matchData: FormattedMatchData): Future[Int] = {
-    logger.debug(s"Trying to add entry for: ${matchData.headline}")
+  def publish(matchData: FormattedMatchData) = {
+    logger.info(s"Trying to add entry for: ${matchData.headline}")
 
-    val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
+    def call(token: String) = EitherT[Future, Problem, Json] {
+      val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
 
-    val postParams = Map[String, String]("body" -> matchData.text)
+      val postParams = Map[String, String]("body" -> matchData.text)
 
-    val tokenRequest = HttpRequest(
-      method = HttpMethods.POST,
-      uri = Uri(microblogAddUri),
-      headers = List(apiSignHeader(microblogAddUri, postParams)),
-      entity = FormData(postParams).toEntity
-    )
+      val tokenRequest = HttpRequest(
+        method = HttpMethods.POST,
+        uri = Uri(microblogAddUri),
+        headers = List(apiSignHeader(microblogAddUri, postParams)),
+        entity = FormData(postParams).toEntity
+      )
 
-    logger.debug(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
+      logger.debug(s"Token Request: ${tokenRequest.copy(entity = "<REDACTED>")}")
 
-    val response = request(tokenRequest, connectionFlow)
-      .flatMap(response => process[io.circe.Json](response, parseSimple))
-      .map(_.fold(
-        error => throw new RuntimeException(error.message),
-        success => success
-      )).map(_.hcursor.downField("id").as[String])
+      request(tokenRequest, connectionFlow)
+        .flatMap(response => process[Json](response, parseSimple))
+    }
 
-    response.map(_.fold(
-      err     => throw new RuntimeException(err.message),
-      success => {
-        val id = success.toInt
-        logger.info(s"Added Wykop entry $id for ${matchData.headline}")
-        id
+    def parse(json: Json) = EitherT[Future, Problem, Int] {
+      Future.successful {
+        json.hcursor.downField("id").as[String].fold(
+          failure => Left(Problem(s"Failed to parse id: $failure")),
+          success => Right(success.toInt)
+        )
       }
-    ))
-    //Future.successful(1)
+    }
+
+    for {
+      token   <- authToken
+      json    <- call(token)
+      result  <- parse(json)
+    } yield result
+  }
+}
+
+case class WykopApiClientConfig(login: String,
+                                applicationKey: String,
+                                secret: String,
+                                accountKey: String,
+                                userAgent: String)
+
+
+object WykopApiClientConfig {
+  def apply(config: Config, userAgent: String): WykopApiClientConfig = {
+    new WykopApiClientConfig(
+      login = config.wykopLogin,
+      applicationKey = config.wykopApplicationKey,
+      secret = config.wykopSecret,
+      accountKey = config.wykopAccountKey,
+      userAgent = userAgent
+    )
   }
 }
