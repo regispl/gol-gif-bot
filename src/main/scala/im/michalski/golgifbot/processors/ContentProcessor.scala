@@ -19,7 +19,7 @@ class ContentProcessorImpl extends ContentProcessor {
 
   def maybeExtractTime(line: String): Option[String] = {
     // e.g. 3', 21`, 103 min, 45 + 1'
-    val timeRegex = """(\d\d?(\s?\+\s?\d)?('|`|\s?min))""".r
+    val timeRegex = """(\d\d?\d?(\s?\+\s?\d)?('|`|\s?min))""".r
 
     def parse(regex: Regex) = {
       regex
