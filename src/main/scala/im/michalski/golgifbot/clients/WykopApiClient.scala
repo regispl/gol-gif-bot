@@ -93,7 +93,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
     def parse(json: Json) = EitherT[Future, Problem, Int] {
       Future.successful {
         json.hcursor.downField("id").as[String].fold(
-          failure => Left(Problem(s"Failed to parse id: $failure")),
+          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}")),
           success => Right(success.toInt)
         )
       }

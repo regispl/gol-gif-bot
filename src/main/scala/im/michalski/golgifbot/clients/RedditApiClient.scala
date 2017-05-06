@@ -49,10 +49,9 @@ class RedditApiClient(val config: RedditApiClientConfig)
   def getMatchThreadData: EitherT[Future, Problem, List[RawMatchThreadData]] = {
     def getJson(token: String) = EitherT[Future, Problem, Json] {
       val requestUri = "/r/soccer/search"
-      val queryString = "?q=flair%3Apostmatch&sort=new&restrict_sr=on&t=day"
+      val queryString = "?q=flair_css_class%3Apostmatch&sort=new&restrict_sr=on&t=day"
 
       val authHeader = RawHeader("Authorization", s"bearer $token")
-      val userAgentHeader = RawHeader("User-Agent", config.userAgent)
 
       val dataRequest = HttpRequest(
         method = HttpMethods.GET,

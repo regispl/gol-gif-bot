@@ -8,13 +8,12 @@ class WykopBlogFormatter extends Formatter {
 
   val botName = "@GolGifBot"
   val botOwner = "@Regis86"
-  val botTags = Seq("#golgifbottest")
+  val botTags = Seq("#golgifbot")
   val botInfo =
-    s"""**WPIS TESTOWY!**
-       |To jest / będzie bot $botName użytkownika $botOwner wrzucający gole z Reddita.
-       |Dodaj do czarnej listy tag ${botTags.mkString(",")}, jeśli nie chcesz oglądać tych wpisów.
-       |Docelowo, jeśli bot się sprawdzi i nie będzie robił głupich rzeczy, wpisy będą wrzucane pod tag #golgif automatycznie
-       |(a póki co uruchamiam skrypt ręcznie - w miarę możliwości - raz dziennie, wieczorem)""".stripMargin
+    s"""#golgif
+       |
+       |To jest bot użytkownika $botOwner wrzucający gole z Reddita.
+       |Dodaj do czarnej listy bota lub tag ${botTags.mkString(",")}, jeśli nie chcesz oglądać tych wpisów.""".stripMargin
 
   private def printLine(maybeTime: Option[String], link: Link) = maybeTime match {
     case Some(time) if !link.description.contains(time) => s"$time ${link.description}: ${link.link}"

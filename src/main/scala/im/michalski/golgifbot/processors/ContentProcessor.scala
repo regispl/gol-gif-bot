@@ -14,6 +14,7 @@ class ContentProcessorImpl extends ContentProcessor {
   private def isMatchEvent(line: String): Boolean = {
     line.contains("streamable") ||
       line.contains("mixtape") ||
+      line.contains("nya.is") ||
       line.contains("mp4")
   }
 
