@@ -12,7 +12,7 @@ class ScoreExtractorImpl extends ScoreExtractor {
     try {
       Some(s.toInt)
     } catch {
-      case e: Exception => None
+      case _: Exception => None
     }
   }
 
@@ -23,7 +23,7 @@ class ScoreExtractorImpl extends ScoreExtractor {
       if (isSingleDigit(item)) toInt(item) else None          // If part of a score (max 9) return number
     }.toList.filter(_.isDefined) match {
       case Some(a) :: Some(b) :: Nil => Some(Score(a, b))     // If at most two numbers - it's a Score
-      case x => None
+      case _ => None
     }
   }
 }

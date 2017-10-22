@@ -9,18 +9,17 @@ import akka.stream.scaladsl.Flow
 import cats.data.EitherT
 import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
-import de.heikoseeberger.akkahttpcirce.CirceSupport
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import im.michalski.golgifbot.config.Config
 import im.michalski.golgifbot.models.{AccessToken, Problem, RawMatchThreadData}
 import io.circe.{ACursor, Json}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.language.postfixOps
 
 
 class RedditApiClient(val config: RedditApiClientConfig)
                      (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
-  extends ApiClient with CirceSupport with LazyLogging {
+  extends ApiClient with FailFastCirceSupport with LazyLogging {
 
   import im.michalski.golgifbot.models.JsonOps._
 
@@ -42,7 +41,7 @@ class RedditApiClient(val config: RedditApiClientConfig)
     )
 
     request(tokenRequest, authConnectionFlow)
-      .flatMap(response => process[AccessToken](response, unmarshal[AccessToken]))
+      .flatMap(response => process[AccessToken](response, unmarshall[AccessToken]))
       .map(_.map(_.access_token))
   }
 

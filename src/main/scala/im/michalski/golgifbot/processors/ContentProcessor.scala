@@ -15,6 +15,7 @@ class ContentProcessorImpl extends ContentProcessor {
     line.contains("streamable") ||
       line.contains("mixtape") ||
       line.contains("nya.is") ||
+      line.contains("imgtc.com") ||
       line.contains("mp4")
   }
 
@@ -57,10 +58,13 @@ class ContentProcessorImpl extends ContentProcessor {
     links.dropWhile(_.isEmpty).headOption.getOrElse(Seq.empty[Link])
   }
 
-  private def isGoal(line: String, links: Seq[Link]): Boolean = {
+  private def isGoal(links: Seq[Link]): Boolean = {
     links.nonEmpty
   }
 
+  // FIXME: "Repair" lines with incorrect line breakes, e.g.
+  // `**12'** [](#icon-ball) [**Goal!  Everton 1, Arsenal 0. Wayne Rooney \(Everton\) right footed shot from outside the box.**
+  // ](https://streamable.com/vltln)`
   override def process(selftext: String): Seq[MatchEvent] = {
     selftext
       .split("\n+")
@@ -74,7 +78,7 @@ class ContentProcessorImpl extends ContentProcessor {
         val maybeTime = maybeExtractTime(processedLine)
         val links = extractLinks(processedLine)
 
-        if(isGoal(processedLine, links)) {
+        if(isGoal(links)) {
           Goal(maybeTime, links)
         } else if (links.nonEmpty) {
           OtherWithLinks(links)

@@ -42,8 +42,8 @@ trait ApiClient extends LazyLogging {
     entity.toStrict(timeout).map(_.data.decodeString("UTF-8"))
   }
 
-  private[clients] def unmarshal[T](entity: ResponseEntity)
-                                   (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Problem, T]] = {
+  private[clients] def unmarshall[T](entity: ResponseEntity)
+                                    (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Problem, T]] = {
     Try(Unmarshal(entity).to[T]) match {
       case Success(e) => e.map(Right(_))
       case Failure(exception) => collectResponseEntity(entity).map { data =>
@@ -62,8 +62,7 @@ trait ApiClient extends LazyLogging {
     ))
   }
 
-  private[clients] def process[T](response: HttpResponse, decode: ResponseEntity => Future[Either[Problem, T]])
-                                 (implicit um: Unmarshaller[ResponseEntity, T]): Future[Either[Problem, T]] = {
+  private[clients] def process[T](response: HttpResponse, decode: ResponseEntity => Future[Either[Problem, T]]): Future[Either[Problem, T]] = {
     response.status match {
       case StatusCodes.OK   => decode(response.entity)
       case _                => collectResponseEntity(response.entity).map { data =>

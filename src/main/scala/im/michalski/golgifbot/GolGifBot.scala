@@ -11,7 +11,6 @@ import im.michalski.golgifbot.models.{FormattedMatchData, Problem, RawMatchThrea
 import im.michalski.golgifbot.processors._
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 
 class GolGifBot(config: Config) extends LazyLogging {
@@ -52,7 +51,7 @@ class GolGifBot(config: Config) extends LazyLogging {
       } else {
         EitherT[Future, Problem, Int](Future.successful(Right(-1)))
       }
-    }.map(_.value)).map(_.sequenceU)
+    }.map(_.value)).map(_.sequence)
   }
 
   def run: Future[Either[Problem, List[Int]]] = {
@@ -83,8 +82,6 @@ class GolGifBot(config: Config) extends LazyLogging {
 
 object GolGifBot extends App with LazyLogging {
   import im.michalski.golgifbot.config.Parser._
-  import scopt.RenderingMode
-
   import scala.concurrent.ExecutionContext.Implicits.global
 
   parser.parse(args, Config()) match {

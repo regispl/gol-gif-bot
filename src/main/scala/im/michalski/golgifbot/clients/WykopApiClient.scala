@@ -9,7 +9,7 @@ import akka.stream.scaladsl.Flow
 import cats.data.EitherT
 import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
-import de.heikoseeberger.akkahttpcirce.CirceSupport
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import im.michalski.golgifbot.config.Config
 import im.michalski.golgifbot.models.Problem
 import im.michalski.golgifbot.utils.MD5
@@ -20,7 +20,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class WykopApiClient(val config: WykopApiClientConfig)
                     (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
-  extends ApiClient with CirceSupport with LazyLogging {
+  extends ApiClient with FailFastCirceSupport with LazyLogging {
 
   private val host: String = "a.wykop.pl"
 
@@ -93,7 +93,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
     def parse(json: Json) = EitherT[Future, Problem, Int] {
       Future.successful {
         json.hcursor.downField("id").as[String].fold(
-          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}")),
+          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}; Body provided: ${body}")),
           success => Right(success.toInt)
         )
       }
