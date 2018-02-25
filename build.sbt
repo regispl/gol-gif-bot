@@ -1,6 +1,6 @@
 name := "gol-gif-bot"
 
-version := "0.1.2"
+version := "0.1.3"
 
 scalaVersion := "2.12.3"
 
@@ -29,7 +29,7 @@ val akkaV       = "2.5.3"
 val akkaHttpV   = "10.0.9"
 val akkaCirceV  = "1.17.0"
 val catsV       = "1.0.1"
-val circeV      = "0.8.0"
+val circeV      = "0.9.1"
 val logbackV    = "1.1.7"
 val scalaLogV   = "3.5.0"
 val scalaTestV  = "3.0.1"

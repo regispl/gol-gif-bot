@@ -16,6 +16,12 @@ class ContentProcessorSpec extends FlatSpec with Matchers {
       pair._1 should === (pair._2)
     }
   }
+
+  it should "correctly handle early line breaks" in {
+    val output = processor.process(withEarlyLineBreak)
+
+    output should === (expectedWithEarlyLineBreak)
+  }
 }
 
 object ContentProcessorSpec {
@@ -79,5 +85,11 @@ object ContentProcessorSpec {
     List(
       Goal(Some("43'"), List(Link("", "https://my.mixtape.moe/uuqroa.mp4")))
     )
+  )
+
+  val withEarlyLineBreak = "**79'** [](#icon-ball) [**Goal!  Watford 1, Everton 0. Troy Deeney \\(Watford\\) right footed shot from the centre of the box to the top right corner. Assisted by Stefano Okaka.**\n](https://streamable.com/iyd75)\n**82'** [](#icon-sub) Substitution, Everton. Yannick Bolasie replaces Gylfi Sigurdsson."
+
+  val expectedWithEarlyLineBreak = List(
+    Goal(Some("79'"),List(Link("**Goal! Watford 1, Everton 0. Troy Deeney \\(Watford\\) right footed shot from the centre of the box to the top right corner. Assisted by Stefano Okaka.**", "https://streamable.com/iyd75")))
   )
 }

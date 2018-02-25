@@ -11,6 +11,33 @@ trait ContentProcessor {
 
 class ContentProcessorImpl extends ContentProcessor {
 
+  override def process(selftext: String): Seq[MatchEvent] = {
+    fixLineBreaks(selftext)
+      .split("\n+")
+      .filter(isMatchEvent)
+      .map { line =>
+        val processedLine = line
+          .replaceAll("""\[\]\(\#[\w\d\-]+\)""", " ")       // Remove icons
+          .replaceAll("""^\s+|\s+$""", "")                  // Strip whitespaces
+          .replaceAll("""\s+""", " ")                       // Replace multi-whitespaces with single ones
+
+        val maybeTime = maybeExtractTime(processedLine)
+        val links = extractLinks(processedLine)
+
+        if(isGoal(links)) {
+          Goal(maybeTime, links)
+        } else if (links.nonEmpty) {
+          OtherWithLinks(links)
+        } else {
+          Unknown(processedLine)
+        }
+      }.toList
+  }
+
+  private def fixLineBreaks(selftext: String): String = {
+    selftext.replaceAll("""\n+(\s+)?\]\(""", "](")
+  }
+
   private def isMatchEvent(line: String): Boolean = {
     line.contains("streamable") ||
       line.contains("mixtape") ||
@@ -61,31 +88,5 @@ class ContentProcessorImpl extends ContentProcessor {
 
   private def isGoal(links: Seq[Link]): Boolean = {
     links.nonEmpty
-  }
-
-  // FIXME: "Repair" lines with incorrect line breakes, e.g.
-  // `**12'** [](#icon-ball) [**Goal!  Everton 1, Arsenal 0. Wayne Rooney \(Everton\) right footed shot from outside the box.**
-  // ](https://streamable.com/vltln)`
-  override def process(selftext: String): Seq[MatchEvent] = {
-    selftext
-      .split("\n+")
-      .filter(isMatchEvent)
-      .map { line =>
-        val processedLine = line
-          .replaceAll("""\[\]\(\#[\w\d\-]+\)""", " ")       // Remove icons
-          .replaceAll("""^\s+|\s+$""", "")                  // Strip whitespaces
-          .replaceAll("""\s+""", " ")                       // Replace multi-whitespaces with single ones
-
-        val maybeTime = maybeExtractTime(processedLine)
-        val links = extractLinks(processedLine)
-
-        if(isGoal(links)) {
-          Goal(maybeTime, links)
-        } else if (links.nonEmpty) {
-          OtherWithLinks(links)
-        } else {
-          Unknown(processedLine)
-        }
-      }.toList
   }
 }
