@@ -16,6 +16,7 @@ class ContentProcessorImpl extends ContentProcessor {
       line.contains("mixtape") ||
       line.contains("nya.is") ||
       line.contains("imgtc.com") ||
+      line.contains("streamja.com") ||
       line.contains("mp4")
   }
 
