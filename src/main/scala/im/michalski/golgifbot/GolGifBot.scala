@@ -57,12 +57,12 @@ class GolGifBot(config: Config) extends LazyLogging {
   def run: Future[Either[Problem, List[Int]]] = {
     val result = for {
       data          <- redditClient.getMatchThreadData
-      _              = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
       notPublished   = notPublishedYet(data)
       processed      = processAndPickValid(notPublished)
       formatted      = processed.map(formatter.format)
       _              = formatted.foreach(debugTee)
       response      <- publish(formatted)
+      _              = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
     } yield response
 
     val fut = result.value.recoverWith {

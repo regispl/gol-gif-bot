@@ -1,5 +1,6 @@
 .idea/
 experiments/
+bin/
 src/main/scala/*.sc
 
 *.class
