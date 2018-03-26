@@ -3,11 +3,12 @@ package im.michalski.golgifbot
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
+import cats.effect.IO
 import com.typesafe.scalalogging.LazyLogging
 import im.michalski.golgifbot.clients.{RedditApiClient, RedditApiClientConfig, WykopApiClient, WykopApiClientConfig}
 import im.michalski.golgifbot.config.Config
 import im.michalski.golgifbot.formatters.WykopBlogFormatter
-import im.michalski.golgifbot.models.{FormattedMatchData, Problem, RawMatchThreadData}
+import im.michalski.golgifbot.models.{FormattedMatchData, MatchThreadData, Problem, RawMatchThreadData}
 import im.michalski.golgifbot.processors._
 
 import scala.concurrent.Future
@@ -37,21 +38,20 @@ class GolGifBot(config: Config) extends LazyLogging {
 
   def notPublishedYet(data: List[RawMatchThreadData]) = config.lastPublishedId match {
     case Some(id) => data.takeWhile(_.id != id)
-    case None => data
+    case None     => data
   }
 
-  def processAndPickValid(data: List[RawMatchThreadData]) = {
+  def processAndPickValid(data: List[RawMatchThreadData]): List[MatchThreadData] = {
     data.map(processor.process).filter(_.isDefined).map(_.get)
   }
 
-  def publish(data: List[FormattedMatchData]) = EitherT[Future, Problem, List[Int]] {
-    Future.sequence(data.map { fmd =>
-      if (!config.dryRun) {
-        wykopClient.publish(fmd.text)
-      } else {
-        EitherT[Future, Problem, Int](Future.successful(Right(-1)))
-      }
-    }.map(_.value)).map(_.sequence)
+  def publish(data: List[FormattedMatchData]): EitherT[IO, Problem, List[Int]] = {
+    import im.michalski.golgifbot.utils.Transmogrifiers._
+
+    data.map { fmd =>
+      if (!config.dryRun) wykopClient.publish(fmd.text)
+      else EitherT[IO, Problem, Int](IO.pure(Right(-1)))   // FIXME: Replace -1 hack with something more reasonable...
+    }.magic
   }
 
   def run: Future[Either[Problem, List[Int]]] = {
@@ -65,10 +65,13 @@ class GolGifBot(config: Config) extends LazyLogging {
       _              = logger.info(s"[IMPORTANT!] Newest entry ID: ${data.headOption.map(_.id)}")
     } yield response
 
-    val fut = result.value.recoverWith {
-      case e: Exception => Future.successful(Left(Problem(s"Unexpected error: ${e.getMessage}")))
+    val io = result.value.recoverWith {
+      case e: Exception => IO.pure(Left(Problem(s"Unexpected error: ${e.getMessage}")))
     }
 
+    val fut = io.unsafeToFuture()
+
+    // How do I do it with IO?
     fut.onComplete(_ => redditClient.shutdown().map(_ => wykopClient.shutdown()).onComplete(_ => system.terminate()))
 
     fut
