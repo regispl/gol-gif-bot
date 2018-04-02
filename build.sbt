@@ -1,14 +1,15 @@
 name := "gol-gif-bot"
 
-version := "0.1.3"
+version := "0.2.0"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 resolvers += Resolver.bintrayRepo("hseeberger", "maven")
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
   "-encoding", "UTF-8",
+  "-language:postfixOps",
   "-deprecation",           // Emit warning and location for usages of deprecated APIs.
   "-feature",               // Emit warning and location for usages of features that should be imported explicitly.
   "-unchecked",             // Enable additional warnings where generated code depends on assumptions.
@@ -54,4 +55,4 @@ libraryDependencies ++= Seq(
 )
 
 mainClass in assembly := Some("im.michalski.golgifbot.GolGifBot")
-assemblyJarName in assembly := "GolGifBot.jar"
+assemblyJarName in assembly := s"GolGifBot-${version.value}.jar"
