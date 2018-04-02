@@ -12,7 +12,7 @@ import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import im.michalski.golgifbot.config.Config
-import im.michalski.golgifbot.models.Problem
+import im.michalski.golgifbot.models.{Problem, Published, PublishingResult}
 import im.michalski.golgifbot.utils.MD5
 import io.circe.Json
 
@@ -91,11 +91,11 @@ class WykopApiClient(val config: WykopApiClientConfig)
         .flatMap(response => process[Json](response, parseSimple))
     }
 
-    def parse(json: Json) = EitherT[IO, Problem, Int] {
+    def parse(json: Json) = EitherT[IO, Problem, PublishingResult] {
       IO.pure {
         json.hcursor.downField("id").as[String].fold(
-          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}; Body provided: ${body}")),
-          success => Right(success.toInt)
+          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}; Body provided: $body")),
+          success => Right(Published(success.toInt))
         )
       }
     }

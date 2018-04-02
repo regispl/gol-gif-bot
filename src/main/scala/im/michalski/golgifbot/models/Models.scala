@@ -4,6 +4,10 @@ package im.michalski.golgifbot.models
 // General
 case class Problem(message: String)
 
+sealed trait PublishingResult
+final case class Published(id: Int) extends PublishingResult
+final case object DryRun extends PublishingResult
+
 // Reddit API
 case class AccessToken(access_token: String, expires_in: Int, scope: String, token_type: String)
 
