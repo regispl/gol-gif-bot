@@ -1,14 +1,15 @@
 name := "gol-gif-bot"
 
-version := "0.1.3"
+version := "0.2.0"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 resolvers += Resolver.bintrayRepo("hseeberger", "maven")
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
   "-encoding", "UTF-8",
+  "-language:postfixOps",
   "-deprecation",           // Emit warning and location for usages of deprecated APIs.
   "-feature",               // Emit warning and location for usages of features that should be imported explicitly.
   "-unchecked",             // Enable additional warnings where generated code depends on assumptions.
@@ -29,6 +30,7 @@ val akkaV       = "2.5.3"
 val akkaHttpV   = "10.0.9"
 val akkaCirceV  = "1.17.0"
 val catsV       = "1.0.1"
+val catsEffV    = "0.10"
 val circeV      = "0.9.1"
 val logbackV    = "1.1.7"
 val scalaLogV   = "3.5.0"
@@ -47,9 +49,10 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % circeV,
   "io.circe" %% "circe-optics" % circeV,
   "org.typelevel" %% "cats-core" % catsV,
+  "org.typelevel" %% "cats-effect" % catsEffV,
   "org.scalactic" %% "scalactic" % scalaTestV,
   "org.scalatest" %% "scalatest" % scalaTestV % "test"
 )
 
 mainClass in assembly := Some("im.michalski.golgifbot.GolGifBot")
-assemblyJarName in assembly := "GolGifBot.jar"
+assemblyJarName in assembly := s"GolGifBot-${version.value}.jar"

@@ -7,18 +7,18 @@ import akka.http.scaladsl.model.headers.{BasicHttpCredentials, RawHeader}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import cats.data.EitherT
-import cats.instances.all._
+import cats.effect.IO
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import im.michalski.golgifbot.config.Config
 import im.michalski.golgifbot.models.{AccessToken, Problem, RawMatchThreadData}
 import io.circe.{ACursor, Json}
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 
 class RedditApiClient(val config: RedditApiClientConfig)
-                     (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
+                     (implicit val as: ActorSystem, val ece: ExecutionContextExecutor, val am: ActorMaterializer)
   extends ApiClient with FailFastCirceSupport with LazyLogging {
 
   import im.michalski.golgifbot.models.JsonOps._
@@ -26,9 +26,9 @@ class RedditApiClient(val config: RedditApiClientConfig)
   private lazy val authConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps("www.reddit.com")
   private lazy val requestConnectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnectionHttps("oauth.reddit.com")
 
-  lazy val authToken: EitherT[Future, Problem, String] = authorize
+  lazy val authToken: EitherT[IO, Problem, String] = authorize
 
-  private def authorize = EitherT[Future, Problem, String] {
+  private def authorize = EitherT[IO, Problem, String] {
     val authUri = "/api/v1/access_token"
     val authQueryParams = s"?grant_type=password&username=${config.username}&password=${config.password}"
 
@@ -45,8 +45,8 @@ class RedditApiClient(val config: RedditApiClientConfig)
       .map(_.map(_.access_token))
   }
 
-  def getMatchThreadData: EitherT[Future, Problem, List[RawMatchThreadData]] = {
-    def getJson(token: String) = EitherT[Future, Problem, Json] {
+  def getMatchThreadData: EitherT[IO, Problem, List[RawMatchThreadData]] = {
+    def getJson(token: String) = EitherT[IO, Problem, Json] {
       val requestUri = "/r/soccer/search"
       val queryString = "?q=flair_css_class%3Apostmatch&sort=new&restrict_sr=on&t=day"
 

@@ -7,26 +7,27 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import cats.data.EitherT
+import cats.effect.IO
 import cats.instances.all._
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import im.michalski.golgifbot.config.Config
-import im.michalski.golgifbot.models.Problem
+import im.michalski.golgifbot.models.{Problem, Published, PublishingResult}
 import im.michalski.golgifbot.utils.MD5
 import io.circe.Json
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 
 class WykopApiClient(val config: WykopApiClientConfig)
-                    (implicit val as: ActorSystem, val ecc: ExecutionContextExecutor, val am: ActorMaterializer)
+                    (implicit val as: ActorSystem, val ece: ExecutionContextExecutor, val am: ActorMaterializer)
   extends ApiClient with FailFastCirceSupport with LazyLogging {
 
   private val host: String = "a.wykop.pl"
 
   private lazy val connectionFlow: Flow[HttpRequest, HttpResponse, Any] = Http().outgoingConnection(host)
 
-  lazy val authToken: EitherT[Future, Problem, String] = authorize
+  lazy val authToken: EitherT[IO, Problem, String] = authorize
 
   def apiSignHeader(uri: String, postParams: Map[String, String]) = {
     def postParamsToChecksum(params: Map[String, String]) = {
@@ -37,7 +38,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
     RawHeader("apisign", MD5.hash(checksum))
   }
 
-  private def authorize: EitherT[Future, Problem, String] = {
+  private def authorize: EitherT[IO, Problem, String] = {
     val authUri = s"/user/login/appkey/${config.applicationKey}/"
 
     val postParams = Map[String, String](
@@ -52,13 +53,13 @@ class WykopApiClient(val config: WykopApiClientConfig)
       entity = FormData(postParams).toEntity
     )
 
-    val responseJson = EitherT[Future, Problem, Json] {
+    val responseJson = EitherT[IO, Problem, Json] {
       request(microblogAdd, connectionFlow)
         .flatMap(response => process[Json](response, parseSimple))
     }
 
-    def parseJson(json: Json) = EitherT[Future, Problem, String] {
-      Future.successful {
+    def parseJson(json: Json) = EitherT[IO, Problem, String] {
+      IO.pure {
         json.hcursor.downField("userkey").as[String]
           .fold(
             error => Left(Problem(s"Failed to parse 'userkey': $error")),
@@ -74,7 +75,7 @@ class WykopApiClient(val config: WykopApiClientConfig)
   }
 
   def publish(body: String) = {
-    def call(token: String) = EitherT[Future, Problem, Json] {
+    def call(token: String) = EitherT[IO, Problem, Json] {
       val microblogAddUri = s"/entries/add/appkey,${config.applicationKey},userkey,$token/"
 
       val postParams = Map[String, String]("body" -> body)
@@ -90,19 +91,19 @@ class WykopApiClient(val config: WykopApiClientConfig)
         .flatMap(response => process[Json](response, parseSimple))
     }
 
-    def parse(json: Json) = EitherT[Future, Problem, Int] {
-      Future.successful {
+    def parse(json: Json) = EitherT[IO, Problem, PublishingResult] {
+      IO.pure {
         json.hcursor.downField("id").as[String].fold(
-          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}; Body provided: ${body}")),
-          success => Right(success.toInt)
+          failure => Left(Problem(s"Failed to parse id: ${failure.message} when parsing JSON response: ${json.toString}; Body provided: $body")),
+          success => Right(Published(success.toInt))
         )
       }
     }
 
     for {
-      token   <- authToken
-      json    <- call(token)
-      result  <- parse(json)
+      token  <- authToken
+      json   <- call(token)
+      result <- parse(json)
     } yield result
   }
 }
